@@ -32,6 +32,11 @@
 // icon header files
 #include "icons/icons.h"
 
+typedef enum {
+  PICTO_HOURLY = 1,
+  PICTO_DAILY = 2,
+} meteoblue_picto_type_t;
+
 /* Returns battery voltage in millivolts (mv).
  */
 uint32_t readBatteryVoltage()
@@ -477,8 +482,9 @@ bool isWindy(float wind_speed, float wind_gust) {
  */
 template <int BitmapSize>
 const uint8_t *getConditionsBitmap(int id, bool day, bool moon, bool cloudy,
-                                   bool windy)
+                                   bool windy, meteoblue_picto_type_t picto_type)
 {
+#if API_SOURCE == OPENWEATHERMAP
   switch (id)
   {
   // Group 2xx: Thunderstorm
@@ -617,6 +623,165 @@ const uint8_t *getConditionsBitmap(int id, bool day, bool moon, bool cloudy,
     if (id >= 800 && id < 900) {return getBitmap(wi_cloudy, BitmapSize);}
     return getBitmap(wi_na, BitmapSize);
   }
+#elif API_SOURCE == METEOBLUE
+  // Meteoblue icon mapping
+  if (picto_type == PICTO_DAILY)
+  {
+    switch (id)
+    {
+      case 1:  // Clear, cloudless sky
+        if (windy)         {return getBitmap(wi_day_windy, BitmapSize);}
+        return getBitmap(wi_day_sunny, BitmapSize);
+      case 2:  // Clear and few clouds
+      case 3:  // Partly cloudy
+        if (windy)         {return getBitmap(wi_day_cloudy_gusts, BitmapSize);}
+        return getBitmap(wi_day_cloudy, BitmapSize);
+      case 4:  // Overcast
+        if (windy)         {return getBitmap(wi_cloudy_gusts, BitmapSize);}
+        return getBitmap(wi_cloudy, BitmapSize);
+      case 5:  // Fog
+        if (cloudy)         {return getBitmap(wi_fog, BitmapSize);}
+        return getBitmap(wi_day_fog, BitmapSize);
+      case 6:  // Overcast with rain
+      case 12:  // Overcast with occasional rain
+        if (windy)         {return getBitmap(wi_rain_wind, BitmapSize);}
+        return getBitmap(wi_rain, BitmapSize);
+      case 7:  // Mixed with showers
+        return getBitmap(wi_day_showers, BitmapSize);
+      case 8:  // Showers, thunderstorms likely
+        return getBitmap(wi_day_storm_showers, BitmapSize);
+      case 9:  // Overcast with snow
+        if (windy)         {return getBitmap(wi_snow_wind, BitmapSize);}
+        return getBitmap(wi_snow, BitmapSize);
+      case 10:  // Mixed with snow showers
+        if (windy)         {return getBitmap(wi_day_snow_wind, BitmapSize);}
+        return getBitmap(wi_day_snow, BitmapSize);
+      case 11:  // Mostly cloudy with a mixture of snow and rain
+        return getBitmap(wi_day_rain_mix, BitmapSize);
+      case 13:  // Overcast with occasional snow
+        if (windy)         {return getBitmap(wi_snow_wind, BitmapSize);}
+        return getBitmap(wi_snow, BitmapSize);
+      case 14:  // 	Mostly cloudy with rain
+      case 16:  // Mostly cloudy with occasional rain
+        if (windy)         {return getBitmap(wi_day_rain_wind, BitmapSize);}
+        return getBitmap(wi_day_rain, BitmapSize);
+      case 15:  // Mostly cloudy with snow
+      case 17:  // Mostly cloudy with occasional snow
+        if (windy)         {return getBitmap(wi_day_snow_wind, BitmapSize);}
+        return getBitmap(wi_day_snow, BitmapSize);
+      case 18:  // Not used
+      case 19:  // Not used
+        return getBitmap(wi_na, BitmapSize);
+      case 20:  // Mostly cloudy
+        if (windy)         {return getBitmap(wi_day_cloudy_gusts, BitmapSize);}
+        return getBitmap(wi_day_cloudy, BitmapSize);
+      case 21:  // Mostly clear with a chance of local thunderstorms
+      case 22:  // Partly cloudy with a chance of local thunderstorms
+        return getBitmap(wi_day_lightning, BitmapSize);
+      case 23:  // Partly cloudy with local thunderstorms and showers possible
+        return getBitmap(wi_day_thunderstorm, BitmapSize);
+      case 24:  // Cloudy with thunderstorms and heavy showers
+        return getBitmap(wi_thunderstorm, BitmapSize);
+      case 25:  // Mostly cloudy with thunderstorms and showers
+        return getBitmap(wi_storm_showers, BitmapSize);
+      default:
+        // no mapping defined yet
+        return getBitmap(wi_na, BitmapSize);
+    }
+  }
+  else if (picto_type == PICTO_HOURLY)
+  {
+    switch (id)
+    {
+      case 1:  // Clear, cloudless sky
+      case 2:  // Clear, few cirrus
+      case 3:  // Clear with cirrus
+      case 13:  // Clear but hazy
+      case 14:  // Clear but hazy with few cirrus
+      case 15:  // Clear but hazy with cirrus
+        if (windy && day)           {return getBitmap(wi_day_windy, BitmapSize);}
+        if (!day && moon)           {return getBitmap(wi_night_clear, BitmapSize);}
+        if (!day && !moon)          {return getBitmap(wi_stars, BitmapSize);}
+        return getBitmap(wi_day_sunny, BitmapSize);
+      case 4:  // Clear with few low clouds
+      case 5:  // Clear with few low clouds and few cirrus
+      case 6:  // Clear with few low clouds and cirrus
+      case 7:  // Partly cloudy
+      case 8:  // Partly cloudy and few cirrus
+      case 9:  // Partly cloudy and cirrus
+      case 10:  // Mixed with some thunderstorm clouds possible
+      case 11:  // Mixed with few cirrus with some thunderstorm clouds possible
+      case 12:  // Mixed with cirrus with some thunderstorm clouds possible
+      case 19:  // Mostly cloudy
+      case 20:  // Mostly cloudy and few cirrus
+      case 21:  // Mostly cloudy and cirrus
+        if (windy && day)           {return getBitmap(wi_day_cloudy_gusts, BitmapSize);}
+        if (windy && !day && moon)  {return getBitmap(wi_night_alt_cloudy_gusts, BitmapSize);}
+        if (windy && !day && !moon) {return getBitmap(wi_cloudy_gusts, BitmapSize);}
+        if (!day && moon)           {return getBitmap(wi_night_alt_cloudy, BitmapSize);}
+        if (!day && !moon)          {return getBitmap(wi_cloud, BitmapSize);}
+        return getBitmap(wi_day_cloudy, BitmapSize);
+      case 16:  // Fog/low stratus clouds
+      case 17:  // Fog/low stratus clouds with few cirrus
+      case 18:  // Fog/low stratus clouds with cirrus
+        if (cloudy)                 {return getBitmap(wi_fog, BitmapSize);}
+        if (!day && moon)           {return getBitmap(wi_night_fog, BitmapSize);}
+        if (!day && !moon)          {return getBitmap(wi_fog, BitmapSize);}
+        return getBitmap(wi_day_fog, BitmapSize);
+      case 22:  // Overcast
+        if (windy)           {return getBitmap(wi_cloudy_gusts, BitmapSize);}
+        return getBitmap(wi_cloudy, BitmapSize);
+      case 23:  // Overcast with rain
+      case 25:  // Overcast with heavy rain
+      case 33:  // Overcast with light rain
+        if (windy)           {return getBitmap(wi_rain_wind, BitmapSize);}
+        return getBitmap(wi_rain, BitmapSize);
+      case 24:  // Overcast with snow
+      case 26:  // Overcast with heavy snow
+      case 29:  // Storm with heavy snow
+      case 34:  //Overcast with light snow
+        if (windy)           {return getBitmap(wi_snow_wind, BitmapSize);}
+        return getBitmap(wi_snow, BitmapSize);
+      case 27:  // Rain, thunderstorms likely
+        if (!day && moon)  {return getBitmap(wi_night_alt_thunderstorm, BitmapSize);}
+        if (!day && !moon) {return getBitmap(wi_thunderstorm, BitmapSize);}
+        return getBitmap(wi_day_thunderstorm, BitmapSize);
+      case 28:  // Light rain, thunderstorms likely
+        if (!day && moon)  {return getBitmap(wi_night_alt_storm_showers, BitmapSize);}
+        if (!day && !moon) {return getBitmap(wi_storm_showers, BitmapSize);}
+        return getBitmap(wi_day_storm_showers, BitmapSize);
+      case 30:  // Heavy rain, thunderstorms likely
+        return getBitmap(wi_thunderstorm, BitmapSize);
+      case 31:  // Mixed with showers
+        if (!day && moon)           {return getBitmap(wi_night_alt_showers, BitmapSize);}
+        if (!day && !moon)          {return getBitmap(wi_showers, BitmapSize);}
+        return getBitmap(wi_day_showers, BitmapSize);
+      case 32:  // Mixed with snow showers
+        if (windy && day)           {return getBitmap(wi_day_snow_wind, BitmapSize);}
+        if (windy && !day && moon)  {return getBitmap(wi_night_alt_snow_wind, BitmapSize);}
+        if (windy && !day && !moon) {return getBitmap(wi_snow_wind, BitmapSize);}
+        if (!day && moon)           {return getBitmap(wi_night_alt_snow, BitmapSize);}
+        if (!day && !moon)          {return getBitmap(wi_snow, BitmapSize);}
+        return getBitmap(wi_day_snow, BitmapSize);
+      case 35:  // Overcast with mixture of snow and rain
+        if (!day && moon)           {return getBitmap(wi_night_alt_rain_mix, BitmapSize);}
+        if (!day && !moon)          {return getBitmap(wi_rain_mix, BitmapSize);}
+        return getBitmap(wi_day_rain_mix, BitmapSize);
+      case 36:  // Not used
+        return getBitmap(wi_na, BitmapSize);
+      case 37:  // Not used
+        return getBitmap(wi_na, BitmapSize);
+      default:
+        // no mapping defined yet
+        return getBitmap(wi_na, BitmapSize);
+    }
+  }
+  
+  return getBitmap(wi_na, BitmapSize);
+#else
+  // No API source defined
+  return getBitmap(wi_na, BitmapSize);
+#endif
 } // end getConditionsBitmap
 
 /* Takes the daily weather forecast (from OpenWeatherMap API response) and
@@ -629,11 +794,18 @@ const uint8_t *getHourlyForecastBitmap32(const owm_hourly_t &hourly,
 {
   const int id = hourly.weather.id;
   const bool day = isDay(hourly.weather.icon);
+#if API_SOURCE == OPENWEATHERMAP
   const bool moon = isMoonInSky(hourly.dt, today.moonrise, today.moonset,
                                 today.moon_phase);
+#elif API_SOURCE == METEOBLUE
+  // Meteoblue does not provide moon phase info in hourly forecast
+  const bool moon = true;
+#else
+  const bool moon = true;
+#endif
   const bool cloudy = isCloudy(hourly.clouds);
   const bool windy = isWindy(hourly.wind_speed, hourly.wind_gust);
-  return getConditionsBitmap<32>(id, day, moon, cloudy, windy);
+  return getConditionsBitmap<32>(id, day, moon, cloudy, windy, PICTO_HOURLY);
 }
 
 /* Takes the daily weather forecast (from OpenWeatherMap API response) and
@@ -647,7 +819,7 @@ const uint8_t *getDailyForecastBitmap64(const owm_daily_t &daily)
   const bool moon = false;
   const bool cloudy = isCloudy(daily.clouds);
   const bool windy = isWindy(daily.wind_speed, daily.wind_gust);
-  return getConditionsBitmap<64>(id, day, moon, cloudy, windy);
+  return getConditionsBitmap<64>(id, day, moon, cloudy, windy, PICTO_DAILY);
 } // end getForecastBitmap64
 
 /* Takes the current weather and today's daily weather forcast (from
@@ -661,11 +833,18 @@ const uint8_t *getCurrentConditionsBitmap196(const owm_current_t &current,
 {
   const int id = current.weather.id;
   const bool day = isDay(current.weather.icon);
+#if API_SOURCE == OPENWEATHERMAP
   const bool moon = isMoonInSky(current.dt, today.moonrise, today.moonset,
                                 today.moon_phase);
+#elif API_SOURCE == METEOBLUE
+  // Meteoblue does not provide moon phase info in hourly forecast
+  const bool moon = true;
+#else
+  const bool moon = true;
+#endif
   const bool cloudy = isCloudy(current.clouds);
   const bool windy = isWindy(current.wind_speed, current.wind_gust);
-  return getConditionsBitmap<196>(id, day, moon, cloudy, windy);
+  return getConditionsBitmap<196>(id, day, moon, cloudy, windy, PICTO_HOURLY);
 } // end getCurrentConditionsBitmap196
 
 /* Returns a 32x32 bitmap for a given alert.

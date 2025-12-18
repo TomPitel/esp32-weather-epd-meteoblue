@@ -22,9 +22,6 @@
 
 #include "timestamp_utils.h"
 
-static int meteoblueHourlyPictocodeToOWMId(int pictocode);
-static int meteoblueDailyPictocodeToOWMId(int pictocode);
-
 DeserializationError deserializeOneCall(WiFiClient &json,
                                         owm_resp_onecall_t &r)
 {
@@ -209,86 +206,6 @@ DeserializationError deserializeOneCall(WiFiClient &json,
   return error;
 } // end deserializeOneCall
 
-static int meteoblueHourlyPictocodeToOWMId(int pictocode)
-{
-  switch (pictocode)
-  {
-    case 1:  return 800; // Clear, cloudless sky
-    case 2:  return 800; // Clear, few cirrus
-    case 3:  return 800; // Clear with cirrus
-    case 4:  return 801; // Clear with few low clouds
-    case 5:  return 801; // Clear with few low clouds and few cirrus
-    case 6:  return 801; // Clear with few low clouds and cirrus
-    case 7:  return 802; // Partly cloudy
-    case 8:  return 802; // Partly cloudy and few cirrus
-    case 9:  return 802; // Partly cloudy and cirrus
-    case 10: return 803; // Mixed with some thunderstorm clouds possible
-    case 11: return 803; // Mixed with few cirrus with some thunderstorm clouds possible
-    case 12: return 803; // Mixed with cirrus with some thunderstorm clouds possible
-    case 13: return 800; // Clear but hazy
-    case 14: return 800; // Clear but hazy with few cirrus
-    case 15: return 800; // Clear but hazy with cirrus
-    case 16: return 741; // Fog/low stratus clouds
-    case 17: return 741; // Fog/low stratus clouds with few cirrus
-    case 18: return 741; // Fog/low stratus clouds with cirrus
-    case 19: return 803; // Mostly cloudy
-    case 20: return 803; // Mostly cloudy and few cirrus
-    case 21: return 803; // Mostly cloudy and cirrus
-    case 22: return 804; // Overcast
-    case 23: return 501; // Overcast with rain
-    case 24: return 601; // Overcast with snow
-    case 25: return 502; // Overcast with heavy rain
-    case 26: return 602; // Overcast with heavy snow
-    case 27: return 201; // Rain, thunderstorms likely
-    case 28: return 200; // Light rain, thunderstorms likely
-    case 29: return 602; // Storm with heavy snow
-    case 30: return 202; // Heavy rain, thunderstorms likely
-    case 31: return 301; // Mixed with showers
-    case 32: return 621; // Mixed with snow showers
-    case 33: return 500; // Overcast with light rain
-    case 34: return 600; // Overcast with light snow
-    case 35: return 616; // Overcast with mixture of snow and rain
-
-    // Misc / Unknown -> default to clear
-    default: return 800;
-  }
-}
-
-static int meteoblueDailyPictocodeToOWMId(int pictocode)
-{
-  switch (pictocode)
-  {
-    case 1:  return 800; // Clear, cloudless sky
-    case 2:  return 801; // Clear and few clouds
-    case 3:  return 802; // Partly cloudy
-    case 4:  return 804; // Overcast
-    case 5:  return 741; // Fog
-    case 6:  return 502; // Overcast with rain
-    case 7:  return 521; // Mixed with showers
-    case 8:  return 231; // Showers, thunderstorms likely
-    case 9:  return 601; // Overcast with snow
-    case 10: return 621; // Mixed with snow showers
-    case 11: return 616; // Mostly cloudy with a mixture of snow and rain
-    case 12: return 500; // Overcast with occasional rain
-    case 13: return 600; // Overcast with occasional snow
-    case 14: return 501; // Mostly cloudy with rain
-    case 15: return 601; // Mostly cloudy with snow
-    case 16: return 500; // Mostly cloudy with occasional rain
-    case 17: return 600; // Mostly cloudy with occasional snow
-    case 18: return 800; // Not used
-    case 19: return 800; // Not used
-    case 20: return 803; // Mostly cloudy
-    case 21: return 210; // Mostly clear with a chance of local thunderstorms
-    case 22: return 211; // Partly cloudy with a chance of local thunderstorms
-    case 23: return 200; // Partly cloudy with local thunderstorms and showers possible
-    case 24: return 202; // Cloudy with thunderstorms and heavy showers
-    case 25: return 201; // Mostly cloudy with thunderstorms and showers
-
-    // Misc / Unknown -> default to clear
-    default: return 800;
-  }
-}
-
 // Deserialize meteoblue JSON into owm_resp_onecall_t
 DeserializationError deserializeMeteoBlue(WiFiClient &json, owm_resp_onecall_t &r)
 {
@@ -389,7 +306,7 @@ DeserializationError deserializeMeteoBlue(WiFiClient &json, owm_resp_onecall_t &
   r.current.wind_deg = data1h["winddirection"][nearestIdx].as<int>();
   r.current.rain_1h = data1h["precipitation"][nearestIdx].as<float>();
   r.current.snow_1h = 0; // Not available
-  r.current.weather.id = meteoblueHourlyPictocodeToOWMId(data1h["pictocode"][nearestIdx].as<int>());
+  r.current.weather.id = data1h["pictocode"][nearestIdx].as<int>();
   r.current.weather.main = "";
   r.current.weather.description = "";
   if (r.current.dt > r.current.sunrise && r.current.dt < r.current.sunset) {
@@ -419,7 +336,7 @@ DeserializationError deserializeMeteoBlue(WiFiClient &json, owm_resp_onecall_t &
     r.hourly[i].pop = data1h["precipitation_probability"][j].as<float>() / 100.0f;
     r.hourly[i].rain_1h = data1h["precipitation"][j].as<float>();
     r.hourly[i].snow_1h = 0;
-    r.hourly[i].weather.id = meteoblueHourlyPictocodeToOWMId(data1h["pictocode"][j].as<int>());
+    r.hourly[i].weather.id = data1h["pictocode"][j].as<int>();
     r.hourly[i].weather.main = "";
     r.hourly[i].weather.description = "";
     if (r.hourly[i].dt > r.current.sunrise && r.hourly[i].dt < r.current.sunset) {
@@ -460,12 +377,12 @@ DeserializationError deserializeMeteoBlue(WiFiClient &json, owm_resp_onecall_t &
     r.daily[i].uvi = day["uvindex"][d].as<float>();
     r.daily[i].visibility = day["visibility_mean"][d].as<int>();
     r.daily[i].wind_speed = day["windspeed_mean"][d].as<float>();
-    r.daily[i].wind_gust = 0;
+    r.daily[i].wind_gust = day["windspeed_max"][d].as<float>();
     r.daily[i].wind_deg = day["winddirection"][d].as<int>();
     r.daily[i].pop = day["precipitation_probability"][d].as<float>() / 100.0f;
     r.daily[i].rain = day["precipitation"][d].as<float>();
     r.daily[i].snow = 0;
-    r.daily[i].weather.id = meteoblueDailyPictocodeToOWMId(day["pictocode"][d].as<int>());
+    r.daily[i].weather.id = day["pictocode"][d].as<int>();
     r.daily[i].weather.main = "";
     r.daily[i].weather.description = "";
     r.daily[i].weather.icon = String(day["pictocode"][d].as<int>()) + "d";
