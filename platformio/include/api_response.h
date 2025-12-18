@@ -216,6 +216,9 @@ DeserializationError deserializeOneCall(WiFiClient &json,
 DeserializationError deserializeAirQuality(WiFiClient &json,
                                            owm_resp_air_pollution_t &r);
 
+DeserializationError deserializeMeteoBlue(WiFiClient &json,
+                                          owm_resp_onecall_t &r);
+
 
 #endif
 

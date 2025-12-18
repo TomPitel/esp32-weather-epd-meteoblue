@@ -76,6 +76,11 @@ const String OWM_ENDPOINT = "api.openweathermap.org";
 //   calls.
 const String OWM_ONECALL_VERSION = "3.0";
 
+// METEOBLUE API
+// MeteoBlue API key, https://www.meteoblue.com/en/weather/api
+const String MB_APIKEY = "abcdefghijklmnopqrstuvwxyz012345";
+const String MB_ENDPOINT = "my.meteoblue.com";
+
 // LOCATION
 // Set your latitude and longitude.
 // (used to get weather data as part of API requests to OpenWeatherMap)
@@ -87,7 +92,7 @@ const String CITY_STRING = "New York";
 // TIME
 // For list of time zones see
 // https://github.com/nayarsystems/posix_tz_db/blob/master/zones.csv
-const char *TIMEZONE = "EST5EDT,M3.2.0,M11.1.0";
+const char *TIMEZONE = "CET-1CEST,M3.5.0,M10.5.0/3";
 // Time format used when displaying sunrise/set times. (Max 11 characters)
 // For more information about formatting see
 // https://man7.org/linux/man-pages/man3/strftime.3.html
@@ -101,7 +106,7 @@ const char *HOUR_FORMAT = "%H";      // 24-hour ex: 01   23
 // Date format used when displaying date in top-right corner.
 // For more information about formatting see
 // https://man7.org/linux/man-pages/man3/strftime.3.html
-const char *DATE_FORMAT = "%a, %B %e"; // ex: Sat, January 1
+const char *DATE_FORMAT = "%a %e %B "; // ex: Sat, January 1
 // Date/Time format used when displaying the last refresh time along the bottom
 // of the screen.
 // For more information about formatting see
@@ -120,12 +125,12 @@ const unsigned long NTP_TIMEOUT = 20000; // ms
 // minutes past the hour. (range: [2-1440])
 // Note: The OpenWeatherMap model is updated every 10 minutes, so updating more
 //       frequently than that is unnessesary.
-const int SLEEP_DURATION = 30; // minutes
+const int SLEEP_DURATION = 60; // minutes
 // Bed Time Power Savings.
 // If BED_TIME == WAKE_TIME, then this battery saving feature will be disabled.
 // (range: [0-23])
 const int BED_TIME  = 00; // Last update at 00:00 (midnight) until WAKE_TIME.
-const int WAKE_TIME = 06; // Hour of first update after BED_TIME, 06:00.
+const int WAKE_TIME = 8; // Hour of first update after BED_TIME, 06:00.
 // Note that the minute alignment of SLEEP_DURATION begins at WAKE_TIME even if
 // Bed Time Power Savings is disabled.
 // For example, if WAKE_TIME = 00 (midnight) and SLEEP_DURATION = 120, then the

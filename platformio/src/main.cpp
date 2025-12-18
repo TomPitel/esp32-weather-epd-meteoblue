@@ -257,7 +257,11 @@ void setup()
   client.setInsecure();
 #elif defined(USE_HTTPS_WITH_CERT_VERIF)
   WiFiClientSecure client;
-  client.setCACert(cert_Sectigo_RSA_Organization_Validation_Secure_Server_CA);
+#if API_SOURCE == OPENWEATHERMAP
+  client.setCACert(cert_Sectigo_RSA_Organization_Validation_Secure_Server_CA);  
+#else
+  client.setCACert(cert_WE1);
+#endif
 #endif
   int rxStatus = getOWMonecall(client, owm_onecall);
   if (rxStatus != HTTP_CODE_OK)
@@ -273,6 +277,7 @@ void setup()
     powerOffDisplay();
     beginDeepSleep(startTime, &timeInfo);
   }
+  client.setCACert(cert_Sectigo_RSA_Organization_Validation_Secure_Server_CA); // switch cert for air pollution API
   rxStatus = getOWMairpollution(client, owm_air_pollution);
   if (rxStatus != HTTP_CODE_OK)
   {
@@ -292,6 +297,7 @@ void setup()
   // GET INDOOR TEMPERATURE AND HUMIDITY, start BMEx80...
   pinMode(PIN_BME_PWR, OUTPUT);
   digitalWrite(PIN_BME_PWR, HIGH);
+  delay(300);
   TwoWire I2C_bme = TwoWire(0);
   I2C_bme.begin(PIN_BME_SDA, PIN_BME_SCL, 100000); // 100kHz
   float inTemp     = NAN;

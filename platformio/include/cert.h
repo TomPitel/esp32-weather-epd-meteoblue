@@ -112,5 +112,64 @@ vGp4z7h/jnZymQyd/teRCBaho1+V
 // end of certificate chain for api.openweathermap.org:443
 ////////////////////////////////////////////////////////////
 
+////////////////////////////////////////////////////////////
+// certificate chain for my.meteoblue.com:443
+
+// CN: meteoblue.com => name: meteoblue_com
+// not valid before: 2025-11-11 08:42:48+00:00
+// not valid after:  2026-02-09 09:42:47+00:00
+const char fingerprint_meteoblue_com[] PROGMEM = "b8:d2:d5:a3:0f:e8:27:e7:a2:c2:0c:7e:32:06:72:b4:92:f2:25:68";
+const char pubkey_meteoblue_com[] PROGMEM = R"PUBKEY(
+-----BEGIN PUBLIC KEY-----
+MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEKGzpJhcJxIrrCBXv0GifQXqyg3IG
+0ArhhPGno4l5hCEZhDhtrgX+kYO2E6/kiAlWiRRH6wuamf5CSSZCRoEYyA==
+-----END PUBLIC KEY-----
+)PUBKEY";
+
+// http://i.pki.goog/we1.crt
+// CN: WE1 => name: WE1
+// not valid before: 2023-12-13 09:00:00+00:00
+// not valid after:  2029-02-20 14:00:00+00:00
+const char cert_WE1[] PROGMEM = R"CERT(
+-----BEGIN CERTIFICATE-----
+MIICjjCCAjOgAwIBAgIQf/NXaJvCTjAtkOGKQb0OHzAKBggqhkjOPQQDAjBQMSQw
+IgYDVQQLExtHbG9iYWxTaWduIEVDQyBSb290IENBIC0gUjQxEzARBgNVBAoTCkds
+b2JhbFNpZ24xEzARBgNVBAMTCkdsb2JhbFNpZ24wHhcNMjMxMjEzMDkwMDAwWhcN
+MjkwMjIwMTQwMDAwWjA7MQswCQYDVQQGEwJVUzEeMBwGA1UEChMVR29vZ2xlIFRy
+dXN0IFNlcnZpY2VzMQwwCgYDVQQDEwNXRTEwWTATBgcqhkjOPQIBBggqhkjOPQMB
+BwNCAARvzTr+Z1dHTCEDhUDCR127WEcPQMFcF4XGGTfn1XzthkubgdnXGhOlCgP4
+mMTG6J7/EFmPLCaY9eYmJbsPAvpWo4IBAjCB/zAOBgNVHQ8BAf8EBAMCAYYwHQYD
+VR0lBBYwFAYIKwYBBQUHAwEGCCsGAQUFBwMCMBIGA1UdEwEB/wQIMAYBAf8CAQAw
+HQYDVR0OBBYEFJB3kjVnxP+ozKnme9mAeXvMk/k4MB8GA1UdIwQYMBaAFFSwe61F
+uOJAf/sKbvu+M8k8o4TVMDYGCCsGAQUFBwEBBCowKDAmBggrBgEFBQcwAoYaaHR0
+cDovL2kucGtpLmdvb2cvZ3NyNC5jcnQwLQYDVR0fBCYwJDAioCCgHoYcaHR0cDov
+L2MucGtpLmdvb2cvci9nc3I0LmNybDATBgNVHSAEDDAKMAgGBmeBDAECATAKBggq
+hkjOPQQDAgNJADBGAiEAokJL0LgR6SOLR02WWxccAq3ndXp4EMRveXMUVUxMWSMC
+IQDspFWa3fj7nLgouSdkcPy1SdOR2AGm9OQWs7veyXsBwA==
+-----END CERTIFICATE-----
+)CERT";
+
+// http://i.pki.goog/gsr4.crt
+// CN: GlobalSign => name: GlobalSign
+// not valid before: 2012-11-13 00:00:00+00:00
+// not valid after:  2038-01-19 03:14:07+00:00
+const char cert_GlobalSign[] PROGMEM = R"CERT(
+-----BEGIN CERTIFICATE-----
+MIIB3DCCAYOgAwIBAgINAgPlfvU/k/2lCSGypjAKBggqhkjOPQQDAjBQMSQwIgYD
+VQQLExtHbG9iYWxTaWduIEVDQyBSb290IENBIC0gUjQxEzARBgNVBAoTCkdsb2Jh
+bFNpZ24xEzARBgNVBAMTCkdsb2JhbFNpZ24wHhcNMTIxMTEzMDAwMDAwWhcNMzgw
+MTE5MDMxNDA3WjBQMSQwIgYDVQQLExtHbG9iYWxTaWduIEVDQyBSb290IENBIC0g
+UjQxEzARBgNVBAoTCkdsb2JhbFNpZ24xEzARBgNVBAMTCkdsb2JhbFNpZ24wWTAT
+BgcqhkjOPQIBBggqhkjOPQMBBwNCAAS4xnnTj2wlDp8uORkcA6SumuU5BwkWymOx
+uYb4ilfBV85C+nOh92VC/x7BALJucw7/xyHlGKSq2XE/qNS5zowdo0IwQDAOBgNV
+HQ8BAf8EBAMCAYYwDwYDVR0TAQH/BAUwAwEB/zAdBgNVHQ4EFgQUVLB7rUW44kB/
++wpu+74zyTyjhNUwCgYIKoZIzj0EAwIDRwAwRAIgIk90crlgr/HmnKAWBVBfw147
+bmF0774BxL4YSFlhgjICICadVGNA3jdgUM/I2O2dgq43mLyjj0xMqTQrbO/7lZsm
+-----END CERTIFICATE-----
+)CERT";
+
+// end of certificate chain for my.meteoblue.com:443
+////////////////////////////////////////////////////////////
+
 #endif
 

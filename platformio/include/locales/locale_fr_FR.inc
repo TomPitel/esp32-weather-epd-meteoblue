@@ -78,7 +78,7 @@ const char *LC_ERA_T_FMT   = "";
 const String OWM_LANG = "fr";
 
 // CURRENT CONDITIONS
-const char *TXT_FEELS_LIKE         = "Temperature Ressentie";
+const char *TXT_FEELS_LIKE         = "Ressentie";
 const char *TXT_SUNRISE            = "Lever de Soleil";
 const char *TXT_SUNSET             = "Coucher de Soleil";
 const char *TXT_WIND               = "Vent";

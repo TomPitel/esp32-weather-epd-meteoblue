@@ -20,6 +20,11 @@
 #include "api_response.h"
 #include "config.h"
 
+#include "timestamp_utils.h"
+
+static int meteoblueHourlyPictocodeToOWMId(int pictocode);
+static int meteoblueDailyPictocodeToOWMId(int pictocode);
+
 DeserializationError deserializeOneCall(WiFiClient &json,
                                         owm_resp_onecall_t &r)
 {
@@ -203,6 +208,274 @@ DeserializationError deserializeOneCall(WiFiClient &json,
 
   return error;
 } // end deserializeOneCall
+
+static int meteoblueHourlyPictocodeToOWMId(int pictocode)
+{
+  switch (pictocode)
+  {
+    case 1:  return 800; // Clear, cloudless sky
+    case 2:  return 800; // Clear, few cirrus
+    case 3:  return 800; // Clear with cirrus
+    case 4:  return 801; // Clear with few low clouds
+    case 5:  return 801; // Clear with few low clouds and few cirrus
+    case 6:  return 801; // Clear with few low clouds and cirrus
+    case 7:  return 802; // Partly cloudy
+    case 8:  return 802; // Partly cloudy and few cirrus
+    case 9:  return 802; // Partly cloudy and cirrus
+    case 10: return 803; // Mixed with some thunderstorm clouds possible
+    case 11: return 803; // Mixed with few cirrus with some thunderstorm clouds possible
+    case 12: return 803; // Mixed with cirrus with some thunderstorm clouds possible
+    case 13: return 800; // Clear but hazy
+    case 14: return 800; // Clear but hazy with few cirrus
+    case 15: return 800; // Clear but hazy with cirrus
+    case 16: return 741; // Fog/low stratus clouds
+    case 17: return 741; // Fog/low stratus clouds with few cirrus
+    case 18: return 741; // Fog/low stratus clouds with cirrus
+    case 19: return 803; // Mostly cloudy
+    case 20: return 803; // Mostly cloudy and few cirrus
+    case 21: return 803; // Mostly cloudy and cirrus
+    case 22: return 804; // Overcast
+    case 23: return 501; // Overcast with rain
+    case 24: return 601; // Overcast with snow
+    case 25: return 502; // Overcast with heavy rain
+    case 26: return 602; // Overcast with heavy snow
+    case 27: return 201; // Rain, thunderstorms likely
+    case 28: return 200; // Light rain, thunderstorms likely
+    case 29: return 602; // Storm with heavy snow
+    case 30: return 202; // Heavy rain, thunderstorms likely
+    case 31: return 301; // Mixed with showers
+    case 32: return 621; // Mixed with snow showers
+    case 33: return 500; // Overcast with light rain
+    case 34: return 600; // Overcast with light snow
+    case 35: return 616; // Overcast with mixture of snow and rain
+
+    // Misc / Unknown -> default to clear
+    default: return 800;
+  }
+}
+
+static int meteoblueDailyPictocodeToOWMId(int pictocode)
+{
+  switch (pictocode)
+  {
+    case 1:  return 800; // Clear, cloudless sky
+    case 2:  return 801; // Clear and few clouds
+    case 3:  return 802; // Partly cloudy
+    case 4:  return 804; // Overcast
+    case 5:  return 741; // Fog
+    case 6:  return 502; // Overcast with rain
+    case 7:  return 521; // Mixed with showers
+    case 8:  return 231; // Showers, thunderstorms likely
+    case 9:  return 601; // Overcast with snow
+    case 10: return 621; // Mixed with snow showers
+    case 11: return 616; // Mostly cloudy with a mixture of snow and rain
+    case 12: return 500; // Overcast with occasional rain
+    case 13: return 600; // Overcast with occasional snow
+    case 14: return 501; // Mostly cloudy with rain
+    case 15: return 601; // Mostly cloudy with snow
+    case 16: return 500; // Mostly cloudy with occasional rain
+    case 17: return 600; // Mostly cloudy with occasional snow
+    case 18: return 800; // Not used
+    case 19: return 800; // Not used
+    case 20: return 803; // Mostly cloudy
+    case 21: return 210; // Mostly clear with a chance of local thunderstorms
+    case 22: return 211; // Partly cloudy with a chance of local thunderstorms
+    case 23: return 200; // Partly cloudy with local thunderstorms and showers possible
+    case 24: return 202; // Cloudy with thunderstorms and heavy showers
+    case 25: return 201; // Mostly cloudy with thunderstorms and showers
+
+    // Misc / Unknown -> default to clear
+    default: return 800;
+  }
+}
+
+// Deserialize meteoblue JSON into owm_resp_onecall_t
+DeserializationError deserializeMeteoBlue(WiFiClient &json, owm_resp_onecall_t &r)
+{
+  int i;
+  JsonDocument doc;
+ 
+  Serial.println("Receiving JSON data...");
+  // from the server, read them and print them:
+  char c = ' ';
+  while (json.available() && c != '\n') {
+    c = json.read();
+    Serial.print(c);
+  }
+  Serial.println("\nStopping JSON data read.");
+
+  DeserializationError error = deserializeJson(doc, json);
+#if DEBUG_LEVEL >= 1
+  Serial.println("[debug] doc.overflowed() : " + String(doc.overflowed()));
+#endif
+#if DEBUG_LEVEL >= 2
+  serializeJsonPretty(doc, Serial);
+#endif
+  if (error) {
+    return error;
+  }
+
+  // Set coordinates and timezone info
+  r.lat = doc["metadata"]["latitude"].as<float>();
+  r.lon = doc["metadata"]["longitude"].as<float>();
+  r.timezone = doc["metadata"]["timezone_abbrevation"].as<const char *>();
+  r.timezone_offset = doc["metadata"]["utc_timeoffset"].as<int>() * 3600;
+
+  // --- CURRENT ---
+  JsonObject current = doc["data_current"];
+  const char* current_time = current["time"].as<const char *>();
+  r.current.dt = timestampToUnix(current_time);
+  // For sunrise/sunset, get from data_day if available
+  JsonObject day = doc["data_day"];
+  int todayIdx = 0;
+  if (day["time"]) {
+    JsonArray day_times = day["time"].as<JsonArray>();
+    for (size_t d = 0; d < day_times.size(); ++d) {
+      if (current_time && strncmp(current_time, day_times[d], 10) == 0) {
+        todayIdx = d;
+        break;
+      }
+    }
+  }
+  // Compose base date string for HH:MM fields
+  char baseDate[11] = "";
+  if (current_time) {
+    strncpy(baseDate, current_time, 10);
+    baseDate[10] = '\0';
+  }
+  // Sunrise/sunset
+  if (day["sunrise"]) {
+    JsonArray sunriseArr = day["sunrise"].as<JsonArray>();
+    r.current.sunrise = timestampToUnix(sunriseArr[todayIdx], baseDate);
+  } else {
+    r.current.sunrise = 0;
+  }
+  if (day["sunset"]) {
+    JsonArray sunsetArr = day["sunset"].as<JsonArray>();
+    r.current.sunset = timestampToUnix(sunsetArr[todayIdx], baseDate);
+  } else {
+    r.current.sunset = 0;
+  }
+  // Find nearest hour index in data_1h
+  JsonObject data1h = doc["data_1h"];
+  int nearestIdx = 0;
+  if (data1h["time"]) {
+    JsonArray times = data1h["time"].as<JsonArray>();
+    int64_t minDiff = INT64_MAX;
+    for (size_t j = 0; j < times.size(); ++j) {
+      int64_t t = timestampToUnix(times[j]);
+      int64_t diff = abs((int64_t)r.current.dt - t);
+      if (diff < minDiff) {
+        minDiff = diff;
+        nearestIdx = j;
+      }
+    }
+  }
+
+  //Serial.println("Nearest hour index for current weather: " + String(nearestIdx));
+  //Serial.println("Current time: " + String(r.current.dt) + ", matched time: " + String(timestampToUnix(data1h["time"][nearestIdx])));
+
+  // Fill current weather fields
+  r.current.temp = current["temperature"].as<float>() + 273.15f; // Convert C to K
+  r.current.feels_like = data1h["felttemperature"][nearestIdx].as<float>() + 273.15f;
+  r.current.pressure = data1h["sealevelpressure"][nearestIdx].as<int>();
+  r.current.humidity = data1h["relativehumidity"][nearestIdx].as<int>();
+  r.current.dew_point = 0; // Not available
+  r.current.clouds = data1h["totalcloudcover"][nearestIdx].as<int>();
+  r.current.uvi = data1h["uvindex"][nearestIdx].as<float>();
+  r.current.visibility = data1h["visibility"][nearestIdx].as<int>();
+  r.current.wind_speed = data1h["windspeed"][nearestIdx].as<float>();
+  r.current.wind_gust = 0; // Not available
+  r.current.wind_deg = data1h["winddirection"][nearestIdx].as<int>();
+  r.current.rain_1h = data1h["precipitation"][nearestIdx].as<float>();
+  r.current.snow_1h = 0; // Not available
+  r.current.weather.id = meteoblueHourlyPictocodeToOWMId(data1h["pictocode"][nearestIdx].as<int>());
+  r.current.weather.main = "";
+  r.current.weather.description = "";
+  if (r.current.dt > r.current.sunrise && r.current.dt < r.current.sunset) {
+    // Day icon
+    r.current.weather.icon = String(data1h["pictocode"][nearestIdx].as<int>()) + "d";
+  } else {
+    // Night icon
+    r.current.weather.icon = String(data1h["pictocode"][nearestIdx].as<int>()) + "n";
+  }
+
+  // --- HOURLY ---
+  i = 0;
+  JsonArray times = data1h["time"].as<JsonArray>();
+  for (size_t j = nearestIdx; j < times.size() && i < OWM_NUM_HOURLY; ++j, ++i) {
+    r.hourly[i].dt = timestampToUnix(times[j]);
+    r.hourly[i].temp = data1h["temperature"][j].as<float>() + 273.15f;
+    r.hourly[i].feels_like = data1h["felttemperature"][j].as<float>() + 273.15f;
+    r.hourly[i].pressure = data1h["sealevelpressure"][j].as<int>();
+    r.hourly[i].humidity = data1h["relativehumidity"][j].as<int>();
+    r.hourly[i].dew_point = 0;
+    r.hourly[i].clouds = data1h["totalcloudcover"][j].as<int>();
+    r.hourly[i].uvi = data1h["uvindex"][j].as<float>();
+    r.hourly[i].visibility = data1h["visibility"][j].as<int>();
+    r.hourly[i].wind_speed = data1h["windspeed"][j].as<float>();
+    r.hourly[i].wind_gust = 0;
+    r.hourly[i].wind_deg = data1h["winddirection"][j].as<int>();
+    r.hourly[i].pop = data1h["precipitation_probability"][j].as<float>() / 100.0f;
+    r.hourly[i].rain_1h = data1h["precipitation"][j].as<float>();
+    r.hourly[i].snow_1h = 0;
+    r.hourly[i].weather.id = meteoblueHourlyPictocodeToOWMId(data1h["pictocode"][j].as<int>());
+    r.hourly[i].weather.main = "";
+    r.hourly[i].weather.description = "";
+    if (r.hourly[i].dt > r.current.sunrise && r.hourly[i].dt < r.current.sunset) {
+      // Day icon
+      r.hourly[i].weather.icon = String(data1h["pictocode"][j].as<int>()) + "d";
+    } else {
+      // Night icon
+      r.hourly[i].weather.icon = String(data1h["pictocode"][j].as<int>()) + "n";
+    }
+  }
+
+  // --- DAILY ---
+  i = 0;
+  JsonArray day_times = day["time"].as<JsonArray>();
+  for (size_t d = 0; d < day_times.size() && i < OWM_NUM_DAILY; ++d, ++i) {
+    // Compose YYYY-MM-DD for this day
+    const char* daystr = day_times[d];
+    r.daily[i].dt = timestampToUnix(daystr);
+    r.daily[i].sunrise = day["sunrise"] ? timestampToUnix(day["sunrise"][d], daystr) : 0;
+    r.daily[i].sunset = day["sunset"] ? timestampToUnix(day["sunset"][d], daystr) : 0;
+    r.daily[i].moonrise = day["moonrise"] ? timestampToUnix(day["moonrise"][d], daystr) : 0;
+    r.daily[i].moonset = day["moonset"] ? timestampToUnix(day["moonset"][d], daystr) : 0;
+    r.daily[i].moon_phase = 0; // Not available
+    r.daily[i].temp.morn = 0;
+    r.daily[i].temp.day = day["temperature_mean"][d].as<float>() + 273.15f;
+    r.daily[i].temp.eve = 0;
+    r.daily[i].temp.night = 0;
+    r.daily[i].temp.min = day["temperature_min"][d].as<float>() + 273.15f;
+    r.daily[i].temp.max = day["temperature_max"][d].as<float>() + 273.15f;
+    r.daily[i].feels_like.morn = 0;
+    r.daily[i].feels_like.day = day["felttemperature_mean"][d].as<float>() + 273.15f;
+    r.daily[i].feels_like.eve = 0;
+    r.daily[i].feels_like.night = 0;
+    r.daily[i].pressure = day["sealevelpressure_mean"][d].as<int>();
+    r.daily[i].humidity = day["relativehumidity_mean"][d].as<int>();
+    r.daily[i].dew_point = 0;
+    r.daily[i].clouds = day["totalcloudcover_mean"][d].as<int>();
+    r.daily[i].uvi = day["uvindex"][d].as<float>();
+    r.daily[i].visibility = day["visibility_mean"][d].as<int>();
+    r.daily[i].wind_speed = day["windspeed_mean"][d].as<float>();
+    r.daily[i].wind_gust = 0;
+    r.daily[i].wind_deg = day["winddirection"][d].as<int>();
+    r.daily[i].pop = day["precipitation_probability"][d].as<float>() / 100.0f;
+    r.daily[i].rain = day["precipitation"][d].as<float>();
+    r.daily[i].snow = 0;
+    r.daily[i].weather.id = meteoblueDailyPictocodeToOWMId(day["pictocode"][d].as<int>());
+    r.daily[i].weather.main = "";
+    r.daily[i].weather.description = "";
+    r.daily[i].weather.icon = String(day["pictocode"][d].as<int>()) + "d";
+  }
+
+  // Alerts not available in meteoblue
+  r.alerts.clear();
+
+  return error;
+}
 
 DeserializationError deserializeAirQuality(WiFiClient &json,
                                            owm_resp_air_pollution_t &r)

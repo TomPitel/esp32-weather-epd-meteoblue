@@ -45,8 +45,10 @@
 
 #ifdef USE_HTTP
   static const uint16_t OWM_PORT = 80;
+  static const uint16_t MB_PORT = 80;
 #else
   static const uint16_t OWM_PORT = 443;
+  static const uint16_t MB_PORT = 443;
 #endif
 
 /* Power-on and connect WiFi.
@@ -152,9 +154,13 @@ bool waitForSNTPSync(tm *timeInfo)
   int attempts = 0;
   bool rxSuccess = false;
   DeserializationError jsonErr = {};
+#if API_SOURCE == OPENWEATHERMAP
   String uri = "/data/" + OWM_ONECALL_VERSION
                + "/onecall?lat=" + LAT + "&lon=" + LON + "&lang=" + OWM_LANG
                + "&units=standard&exclude=minutely";
+#else
+  String uri = "/packages/basic-1h_basic-day_current_clouds-1h_clouds-day_sunmoon?lat=" + LAT + "&lon=" + LON + "&asl=429&format=json";
+#endif
 #if !DISPLAY_ALERTS
   // exclude alerts
   uri += ",alerts";
@@ -162,9 +168,14 @@ bool waitForSNTPSync(tm *timeInfo)
 
   // This string is printed to terminal to help with debugging. The API key is
   // censored to reduce the risk of users exposing their key.
+#if API_SOURCE == OPENWEATHERMAP
   String sanitizedUri = OWM_ENDPOINT + uri + "&appid={API key}";
 
   uri += "&appid=" + OWM_APIKEY;
+#else
+  String sanitizedUri = MB_ENDPOINT + uri + "&apikey={API key}";
+  uri += "&apikey=" + MB_APIKEY;
+#endif
 
   Serial.print(TXT_ATTEMPTING_HTTP_REQ);
   Serial.println(": " + sanitizedUri);
@@ -181,11 +192,19 @@ bool waitForSNTPSync(tm *timeInfo)
     HTTPClient http;
     http.setConnectTimeout(HTTP_CLIENT_TCP_TIMEOUT); // default 5000ms
     http.setTimeout(HTTP_CLIENT_TCP_TIMEOUT); // default 5000ms
+#if API_SOURCE == OPENWEATHERMAP
     http.begin(client, OWM_ENDPOINT, OWM_PORT, uri);
+#else
+    http.begin(client, MB_ENDPOINT, MB_PORT, uri);
+#endif
     httpResponse = http.GET();
     if (httpResponse == HTTP_CODE_OK)
     {
+#if API_SOURCE == OPENWEATHERMAP
       jsonErr = deserializeOneCall(http.getStream(), r);
+#else
+      jsonErr = deserializeMeteoBlue(http.getStream(), r);
+#endif
       if (jsonErr)
       {
         // -256 offset distinguishes these errors from httpClient errors
